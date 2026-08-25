@@ -12,6 +12,9 @@ namespace MyBackend.Infrastructure.Persistence
 
             try
             {
+                // Ensure PostgreSQL database and tables exist
+                await context.Database.EnsureCreatedAsync();
+
                 // Seed / verify all standard system permissions
                 var standardPermissions = new (string Key, string Name, string Desc)[]
                 {

@@ -79,51 +79,84 @@ namespace MyBackend.Configuration
         // =========================================================================
 
         /// <summary>
-        /// Synchronizes and overlays configuration values from IConfiguration / appsettings.json if available.
+        /// Synchronizes and overlays configuration values from IConfiguration / environment variables / appsettings.json if available.
         /// </summary>
         /// <param name="configuration">The application configuration root.</param>
         public static void Load(IConfiguration configuration)
         {
             if (configuration == null) return;
 
-            // Database Connection
-            var connection = configuration.GetConnectionString("DefaultConnection");
+            // Database Connection (Supports DefaultConnection, DATABASE_URL, and Render postgres:// format)
+            var connection = configuration.GetConnectionString("DefaultConnection")
+                ?? configuration["DATABASE_URL"]
+                ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+                ?? configuration["ConnectionStrings:DefaultConnection"]
+                ?? configuration["DbConnectionString"];
+
             if (!string.IsNullOrWhiteSpace(connection))
             {
-                DbConnectionString = connection;
+                DbConnectionString = ConvertPostgresUriToNpgsql(connection);
             }
 
             // Gmail Settings
-            var smtp = configuration["EmailSettings:SmtpServer"];
+            var smtp = configuration["EmailSettings:SmtpServer"] ?? Environment.GetEnvironmentVariable("SMTP_SERVER");
             if (!string.IsNullOrWhiteSpace(smtp)) SmtpServer = smtp;
 
-            if (int.TryParse(configuration["EmailSettings:Port"], out var port) && port > 0)
+            var portVal = configuration["EmailSettings:Port"] ?? Environment.GetEnvironmentVariable("SMTP_PORT");
+            if (int.TryParse(portVal, out var port) && port > 0)
                 SmtpPort = port;
 
-            var sName = configuration["EmailSettings:SenderName"];
+            var sName = configuration["EmailSettings:SenderName"] ?? Environment.GetEnvironmentVariable("SENDER_NAME");
             if (!string.IsNullOrWhiteSpace(sName)) SenderName = sName;
 
-            var sEmail = configuration["EmailSettings:SenderEmail"];
+            var sEmail = configuration["EmailSettings:SenderEmail"] ?? Environment.GetEnvironmentVariable("SENDER_EMAIL");
             if (!string.IsNullOrWhiteSpace(sEmail)) SenderEmail = sEmail;
 
-            var appPwd = configuration["EmailSettings:AppPassword"];
+            var appPwd = configuration["EmailSettings:AppPassword"] ?? Environment.GetEnvironmentVariable("GMAIL_PASSWORD") ?? Environment.GetEnvironmentVariable("SMTP_PASSWORD");
             if (!string.IsNullOrWhiteSpace(appPwd)) GmailPassword = appPwd;
 
-            if (bool.TryParse(configuration["EmailSettings:EnableSsl"], out var ssl))
+            var sslVal = configuration["EmailSettings:EnableSsl"] ?? Environment.GetEnvironmentVariable("ENABLE_SSL");
+            if (bool.TryParse(sslVal, out var ssl))
                 EnableSsl = ssl;
 
             // JWT Settings
-            var key = configuration["Jwt:Key"];
+            var key = configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY");
             if (!string.IsNullOrWhiteSpace(key)) JwtKey = key;
 
-            var issuer = configuration["Jwt:Issuer"];
+            var issuer = configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER");
             if (!string.IsNullOrWhiteSpace(issuer)) JwtIssuer = issuer;
 
-            var audience = configuration["Jwt:Audience"];
+            var audience = configuration["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE");
             if (!string.IsNullOrWhiteSpace(audience)) JwtAudience = audience;
 
-            if (int.TryParse(configuration["Jwt:ExpiresMinutes"], out var exp) && exp > 0)
+            var expVal = configuration["Jwt:ExpiresMinutes"] ?? Environment.GetEnvironmentVariable("JWT_EXPIRES_MINUTES");
+            if (int.TryParse(expVal, out var exp) && exp > 0)
                 JwtExpiresMinutes = exp;
+        }
+
+        private static string ConvertPostgresUriToNpgsql(string connectionString)
+        {
+            if (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+                connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var uri = new Uri(connectionString);
+                    var userInfo = uri.UserInfo.Split(':');
+                    var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+                    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+                    var host = uri.Host;
+                    var port = uri.Port > 0 ? uri.Port : 5432;
+                    var database = uri.AbsolutePath.TrimStart('/');
+
+                    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+                }
+                catch
+                {
+                    return connectionString;
+                }
+            }
+            return connectionString;
         }
 
         /// <summary>
