@@ -1,0 +1,2422 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>backend</name>
+    </assembly>
+    <members>
+        <member name="M:MyBackend.Api.Controllers.AuditLogsController.GetAuditLogs(System.String,System.String)">
+            <summary>
+            Retrieve all system audit logs and summary metrics from database.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuditLogsController.CreateAuditLog(MyBackend.Application.Contracts.CreateAuditLogRequest)">
+            <summary>
+            Record a new audit log / security event manually or programmatically.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuditLogsController.DeleteAuditLog(System.Int32)">
+            <summary>
+            Delete / remove an audit log entry.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.AuthController">
+            <summary>
+            Authentication, 2FA validation, user session tracking (login/logout with IP address and timestamps), and password evaluation endpoints.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.Login(MyBackend.Application.Contracts.LoginRequest)">
+            <summary>
+            Authenticate user credentials, record login session with client IP address &amp; timestamp in database, and generate JWT access token.
+            </summary>
+            <param name="request">User login credentials containing email and password.</param>
+            <response code="200">Authentication successful (or 2FA required); returns user profile, permissions, dynamic menus, and JWT token.</response>
+            <response code="400">Email or password was not provided.</response>
+            <response code="401">Invalid credentials or account is deactivated.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.VerifyTwoFactorLogin(MyBackend.Application.Contracts.Verify2FaLoginRequest)">
+            <summary>
+            Verify Two-Factor Authentication (2FA) OTP code, record active session with IP address in database, and generate JWT token upon validation.
+            </summary>
+            <param name="request">Payload containing user email and 6-digit 2FA OTP.</param>
+            <response code="200">2FA OTP verified; returns authenticated session data and JWT token.</response>
+            <response code="400">Invalid or expired 2FA code.</response>
+            <response code="404">User account not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.Logout(MyBackend.Application.Contracts.LogoutRequest)">
+            <summary>
+            Record user logout time, date, and IP address in the database and deactivate active session.
+            </summary>
+            <response code="200">Logout session recorded and session terminated successfully.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.GetUserSessions(System.Int32)">
+            <summary>
+            Retrieve the session history (login times, logout times, dates, and IP addresses) for the current user.
+            </summary>
+            <response code="200">List of user sessions returned successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.GetAllRecentSessions(System.Int32)">
+            <summary>
+            Retrieve all recent workspace user sessions across the system (Requires Super Admin or permissions.manage).
+            </summary>
+            <response code="200">List of workspace user sessions returned successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.ResendTwoFactorOtp(MyBackend.Application.Contracts.Resend2FaOtpRequest)">
+            <summary>
+            Resend 2FA login verification code to the user's registered email.
+            </summary>
+            <param name="request">Payload containing registered user email.</param>
+            <response code="200">New 2FA code dispatched via email.</response>
+            <response code="400">Email payload is invalid.</response>
+            <response code="404">User account not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.ForgotPassword(MyBackend.Application.Contracts.ForgotPasswordRequest)">
+            <summary>
+            Initiate password reset by dispatching a 6-digit verification OTP to the user's registered email.
+            </summary>
+            <param name="request">Payload containing the registered email address.</param>
+            <response code="200">OTP generated and dispatched via email successfully.</response>
+            <response code="400">Invalid email payload.</response>
+            <response code="404">No active user account found with this email.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.VerifyOtp(MyBackend.Application.Contracts.VerifyOtpRequest)">
+            <summary>
+            Validate the OTP entered by the user before password update.
+            </summary>
+            <param name="request">Email and 6-digit OTP code.</param>
+            <response code="200">OTP is valid and ready for password reset.</response>
+            <response code="400">Invalid or expired OTP code.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.ResetPassword(MyBackend.Application.Contracts.ResetPasswordRequest)">
+            <summary>
+            Reset user password using verified OTP with strong password validation.
+            </summary>
+            <param name="request">Email, OTP, and new password payload.</param>
+            <response code="200">Password reset successfully.</response>
+            <response code="400">OTP invalid, passwords mismatch, or password does not satisfy strong security requirements.</response>
+            <response code="404">User not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.ValidatePassword(MyBackend.Application.Contracts.EvaluatePasswordRequest)">
+            <summary>
+            Evaluate password strength and complexity rules in real-time.
+            </summary>
+            <param name="request">Payload containing the candidate password string.</param>
+            <response code="200">Password evaluation completed with criteria statuses and strength score.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.AuthController.GetCurrentUserPermissions">
+            <summary>
+            Retrieve the permission keys for the currently authenticated user.
+            </summary>
+            <response code="200">Returns list of granted permission keys.</response>
+            <response code="401">Unauthorized: Valid JWT Bearer token missing or user deactivated.</response>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.DashboardController">
+            <summary>
+            Administrative dashboard statistics, aggregations, and visual chart data endpoints.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.DashboardController.GetDashboardSummary(System.String)">
+            <summary>
+            Retrieve aggregated real-time dashboard metrics, charts, role distribution, and recent users from database.
+            </summary>
+            <param name="timeframe">Timeframe filter ("7d", "30d", "90d"). Defaults to "7d".</param>
+            <response code="200">Dashboard metrics aggregated and returned successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.DesignationsController">
+            <summary>
+            Workspace job designations management and catalog endpoints.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.DesignationsController.GetDesignations">
+            <summary>
+            Retrieves all active designations.
+            </summary>
+            <response code="200">List of designations returned.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.DesignationsController.GetDesignation(System.Int32)">
+            <summary>
+            Retrieves a specific designation by ID.
+            </summary>
+            <param name="id">Designation ID.</param>
+            <response code="200">Designation details returned.</response>
+            <response code="404">Designation not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.DesignationsController.CreateDesignation(MyBackend.Application.Contracts.CreateDesignationRequest)">
+            <summary>
+            Creates and saves a new job designation in the system.
+            </summary>
+            <param name="request">New designation creation payload.</param>
+            <response code="201">Designation created successfully.</response>
+            <response code="400">Invalid payload or designation name already exists.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.GetController">
+            <summary>
+            User account directory and profile management endpoints (Legacy route support).
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.GetController.GetData">
+            <summary>
+            Retrieve all users (Legacy route).
+            </summary>
+            <remarks>
+            Legacy endpoint returning all registered users in the workspace. Recommended standard route is <c>GET /api/users</c>.
+            </remarks>
+            <response code="200">List of users retrieved successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.MenusController.GetUserMenus">
+            <summary>
+            Retrieves the list of accessible menus for the current authenticated user based on JWT token and role permissions.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.MenusController.GetAllMenus">
+            <summary>
+            Retrieves all configured menus in the system (for administrative purposes).
+            </summary>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.PermissionsController">
+            <summary>
+            Permission matrix configuration and role-capability assignments.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.PermissionsController.GetPermissions">
+            <summary>
+            Retrieve the full RBAC permission matrix and role assignments.
+            </summary>
+            <response code="200">Permission matrix returned successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks permission management privileges.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.PermissionsController.UpdateRolePermissions(System.Int32,MyBackend.Application.Contracts.UpdatePermissionsRequest)">
+            <summary>
+            Update granted permission keys for a specific role.
+            </summary>
+            <param name="roleId">The unique integer identifier of the target role.</param>
+            <param name="request">Array of valid permission keys to assign to this role.</param>
+            <response code="200">Role permissions updated successfully.</response>
+            <response code="400">One or more supplied permission keys are invalid.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks permission management privileges.</response>
+            <response code="404">Role not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProfileController.GetProfile">
+            <summary>
+            Retrieve the profile of the currently logged-in user.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProfileController.UpdateProfile(MyBackend.Application.Contracts.UpdateProfileRequest)">
+            <summary>
+            Update profile details for the currently logged-in user.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProfileController.ChangePassword(MyBackend.Application.Contracts.ChangePasswordRequest)">
+            <summary>
+            Change account password for the currently logged-in user.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProjectsController.GetProjects(System.String,System.String,System.String)">
+            <summary>
+            Retrieve all RBAC and deployment projects with summary metrics.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProjectsController.CreateProject(MyBackend.Application.Contracts.CreateProjectRequest)">
+            <summary>
+            Create a new project initiative in the database.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProjectsController.UpdateProject(System.Int32,MyBackend.Application.Contracts.UpdateProjectRequest)">
+            <summary>
+            Update an existing project's status, progress, or parameters.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ProjectsController.DeleteProject(System.Int32)">
+            <summary>
+            Delete / soft-delete a project.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ReportsController.GetReports(System.String,System.String)">
+            <summary>
+            Retrieve all compliance and security reports.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ReportsController.GetCategories">
+            <summary>
+            Retrieve all unique report categories.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ReportsController.DownloadReport(System.Int32)">
+            <summary>
+            Download / Export report data.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ReportsController.CreateReport(MyBackend.Application.Contracts.CreateReportRequest)">
+            <summary>
+            Generate / Create a new compliance report in the database.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ReportsController.UpdateReport(System.Int32,MyBackend.Application.Contracts.UpdateReportRequest)">
+            <summary>
+            Update an existing report's parameters or status.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.ReportsController.DeleteReport(System.Int32)">
+            <summary>
+            Delete / soft-delete a report.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.RolesController">
+            <summary>
+            Role management endpoints for creating, editing, viewing, and deleting workspace roles.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.RolesController.GetRoles">
+            <summary>
+            Retrieve all active workspace roles.
+            </summary>
+            <response code="200">List of roles retrieved successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.RolesController.GetRole(System.Int32)">
+            <summary>
+            Retrieve detailed information for a single role by ID.
+            </summary>
+            <param name="id">The unique integer identifier of the role.</param>
+            <response code="200">Role retrieved successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="404">Role not found or is deactivated.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.RolesController.CreateRole(MyBackend.Application.Contracts.CreateRoleRequest)">
+            <summary>
+            Create a new workspace role.
+            </summary>
+            <param name="request">Payload containing the name and description of the role.</param>
+            <response code="201">Role created successfully; returns the created role entity.</response>
+            <response code="400">Role name is required.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.RolesController.UpdateRole(System.Int32,MyBackend.Application.Contracts.UpdateRoleRequest)">
+            <summary>
+            Update an existing role's title and description.
+            </summary>
+            <param name="id">The unique integer identifier of the role to update.</param>
+            <param name="request">Updated role details.</param>
+            <response code="200">Role updated successfully.</response>
+            <response code="400">Invalid payload provided.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="404">Role not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.RolesController.DeleteRole(System.Int32)">
+            <summary>
+            Soft-delete (deactivate) a workspace role.
+            </summary>
+            <param name="id">The unique integer identifier of the role to deactivate.</param>
+            <response code="200">Role deleted successfully.</response>
+            <response code="400">Cannot delete Super Admin protected role.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="404">Role not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.RolesController.RestoreRole(System.Int32)">
+            <summary>
+            Restore a previously soft-deleted role.
+            </summary>
+            <param name="id">The unique integer identifier of the role to restore.</param>
+            <response code="200">Role restored successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="404">Role not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.GetSchedules(System.String,System.String)">
+            <summary>
+            Retrieve all calendar events, audits, and governance schedules.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.CreateSchedule(MyBackend.Application.Contracts.CreateScheduleRequest)">
+            <summary>
+            Schedule a new event or audit session.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.UpdateSchedule(System.Int32,MyBackend.Application.Contracts.UpdateScheduleRequest)">
+            <summary>
+            Update an existing scheduled event.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.DeleteSchedule(System.Int32)">
+            <summary>
+            Delete / soft-delete a scheduled event.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.GetEventTypes">
+            <summary>
+            Retrieve all calendar event types / categories.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.CreateEventType(MyBackend.Application.Contracts.CreateEventTypeRequest)">
+            <summary>
+            Create a new calendar event type / category.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SchedulesController.DeleteEventType(System.Int32)">
+            <summary>
+            Delete / soft-delete a calendar event type.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.GetSettings(System.String,System.String)">
+            <summary>
+            Retrieve all workspace settings and parameters.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.GetCategories">
+            <summary>
+            Retrieve all configuration categories registered in database.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.CreateCategory(MyBackend.Application.Contracts.CreateSettingCategoryRequest)">
+            <summary>
+            Create and persist a new configuration category.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.UpdateCategory(System.Int32,MyBackend.Application.Contracts.UpdateSettingCategoryRequest)">
+            <summary>
+            Update an existing configuration category.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.DeleteCategory(System.Int32)">
+            <summary>
+            Delete / soft-delete a configuration category.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.UpdateSettingsBulk(MyBackend.Application.Contracts.UpdateSettingsBulkRequest)">
+            <summary>
+            Update multiple workspace configuration settings in bulk.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.CreateSetting(MyBackend.Application.Contracts.CreateSettingRequest)">
+            <summary>
+            Create or register a custom system configuration key.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.UpdateSetting(System.Int32,MyBackend.Application.Contracts.UpdateSettingRequest)">
+            <summary>
+            Update an existing system configuration setting.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.SettingsController.DeleteSetting(System.Int32)">
+            <summary>
+            Delete a configuration setting from the database.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.UserActivityController">
+            <summary>
+            Live user activity monitoring, active online sessions, and login/logout audit trail.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UserActivityController.GetSummary">
+            <summary>
+            Retrieves high-level dashboard metrics, live active user sessions, and recent logins.
+            </summary>
+            <response code="200">User activity metrics and active sessions returned.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks 'user_activity.view' permission.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UserActivityController.GetActivities(MyBackend.Application.Contracts.UserActivityQueryParameters)">
+            <summary>
+            Retrieves paginated list of user login/logout activity sessions with optional search and status filter.
+            </summary>
+            <response code="200">Paginated list of activity records returned.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks 'user_activity.view' permission.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UserActivityController.GetActiveUsers">
+            <summary>
+            Retrieves list of currently logged in / active users.
+            </summary>
+            <response code="200">List of currently active sessions returned.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks 'user_activity.view' permission.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UserActivityController.TerminateSession(System.Int32)">
+            <summary>
+            Force terminate an active session by session ID.
+            </summary>
+            <param name="sessionId">The ID of the session to terminate.</param>
+            <response code="200">Session terminated successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks manage permission.</response>
+            <response code="404">Session not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UserActivityController.ForceLogoutUser(System.Int32)">
+            <summary>
+            Force logout a user from all their active sessions.
+            </summary>
+            <param name="userId">The target user ID to log out.</param>
+            <response code="200">User sessions terminated.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks manage permission.</response>
+        </member>
+        <member name="T:MyBackend.Api.Controllers.UsersController">
+            <summary>
+            User account provisioning, profile retrieval, updates, soft deletion, and restoration.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UsersController.GetUsers">
+            <summary>
+            Retrieve all users in the system formatted as UserDto.
+            </summary>
+            <response code="200">List of user accounts retrieved successfully.</response>
+            <response code="401">Unauthorized: Missing or invalid authentication token.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UsersController.GetUser(System.Int32)">
+            <summary>
+            Retrieve detailed profile information for a single user by ID.
+            </summary>
+            <param name="id">The unique integer identifier of the user.</param>
+            <response code="200">User profile found and returned.</response>
+            <response code="404">No user exists with the specified ID.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UsersController.CreateUser(MyBackend.Application.Contracts.CreateUserRequest)">
+            <summary>
+            Provision and register a new user account and dispatch welcome credentials email via Gmail.
+            </summary>
+            <param name="request">New user registration payload.</param>
+            <response code="201">User created successfully; returns UserDto.</response>
+            <response code="400">Missing required fields.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks user creation permissions.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UsersController.UpdateUser(System.Int32,MyBackend.Application.Contracts.UpdateUserRequest)">
+            <summary>
+            Update an existing user's profile and credentials.
+            </summary>
+            <param name="id">The unique integer identifier of the user to update.</param>
+            <param name="request">Updated user payload.</param>
+            <response code="200">User updated successfully.</response>
+            <response code="400">Invalid payload provided.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks edit permissions.</response>
+            <response code="404">User not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UsersController.DeleteUser(System.Int32)">
+            <summary>
+            Soft-delete (deactivate) a user account.
+            </summary>
+            <param name="id">The unique integer identifier of the user to deactivate.</param>
+            <response code="200">User deactivated successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks delete permissions.</response>
+            <response code="404">User not found.</response>
+        </member>
+        <member name="M:MyBackend.Api.Controllers.UsersController.RestoreUser(System.Int32)">
+            <summary>
+            Restore a previously deactivated user account.
+            </summary>
+            <param name="id">The unique integer identifier of the user to restore.</param>
+            <response code="200">User account restored successfully.</response>
+            <response code="401">Unauthorized: Authentication token is required.</response>
+            <response code="403">Forbidden: Caller lacks restoration permissions.</response>
+            <response code="404">User not found.</response>
+        </member>
+        <member name="T:MyBackend.Api.Middlewares.ActiveSessionValidationMiddleware">
+            <summary>
+            Validates that authenticated incoming requests correspond to an active session in the database.
+            Rejects requests from terminated/force-logged-out sessions with 401 Unauthorized.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Api.Middlewares.ExceptionHandlingMiddleware">
+            <summary>
+            Global middleware for handling exceptions and mapping them to standardized JSON error responses.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Common.Interfaces.IApplicationDbContext">
+            <summary>
+            Database context abstraction for the application layer.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Common.Interfaces.IEmailService">
+            <summary>
+            Service contract for sending transactional emails (credentials, OTP codes, alerts).
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Common.Interfaces.IOtpService">
+            <summary>
+            Service contract for generating, validating, and consuming short-lived OTP tokens.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Common.Models.EmailSettings">
+            <summary>
+            Configuration model for SMTP email delivery.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Common.Validators.PasswordValidator">
+            <summary>
+            Validates password complexity: minimum 8 characters, uppercase, lowercase, numeric digit, and special character.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.LoginRequest">
+            <summary>
+            User login credentials payload.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LoginRequest.Email">
+            <summary>
+            Registered email address of the user.
+            </summary>
+            <example>admin@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LoginRequest.Password">
+            <summary>
+            Password for account authentication.
+            </summary>
+            <example>Password123!</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.ForgotPasswordRequest">
+            <summary>
+            Request payload to initiate a password reset OTP dispatch.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ForgotPasswordRequest.Email">
+            <summary>
+            Registered email address to receive the verification OTP.
+            </summary>
+            <example>user@example.com</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.VerifyOtpRequest">
+            <summary>
+            Request payload to verify a dispatched OTP code.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.VerifyOtpRequest.Email">
+            <summary>
+            Registered email address associated with the OTP.
+            </summary>
+            <example>user@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.VerifyOtpRequest.Otp">
+            <summary>
+            6-digit numeric OTP code received via email.
+            </summary>
+            <example>682491</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.ResetPasswordRequest">
+            <summary>
+            Request payload to complete password reset using a verified OTP.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ResetPasswordRequest.Email">
+            <summary>
+            Registered email address of the account.
+            </summary>
+            <example>user@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ResetPasswordRequest.Otp">
+            <summary>
+            6-digit verification OTP code.
+            </summary>
+            <example>682491</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ResetPasswordRequest.NewPassword">
+            <summary>
+            Strong new password (requires uppercase, lowercase, digit, special character, min 8 chars).
+            </summary>
+            <example>Secure@P4ssw0rd!</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ResetPasswordRequest.ConfirmPassword">
+            <summary>
+            Confirmation of the new password.
+            </summary>
+            <example>Secure@P4ssw0rd!</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.AuthUserData">
+            <summary>
+            Authentication payload containing authenticated user identity, role, permissions, dynamic menus, and JWT bearer token.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.Id">
+            <summary>
+            Unique user identifier.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.Name">
+            <summary>
+            Full display name of the user.
+            </summary>
+            <example>Alex Morgan</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.Email">
+            <summary>
+            Email address of the user.
+            </summary>
+            <example>admin@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.RoleId">
+            <summary>
+            Assigned Role identifier (e.g. 2 for Super Admin).
+            </summary>
+            <example>2</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.RoleName">
+            <summary>
+            Human-readable name of the assigned role.
+            </summary>
+            <example>Super Admin</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.Permissions">
+            <summary>
+            List of permission keys granted to this user.
+            </summary>
+            <example>["users.view", "users.create", "roles.view", "permissions.manage"]</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.Menus">
+            <summary>
+            List of dynamic navigation menus accessible by the user.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.AuthUserData.Token">
+            <summary>
+            Encrypted JWT bearer token to be included in subsequent requests via the Authorization header.
+            </summary>
+            <example>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.CurrentUserPermissionsResponse">
+            <summary>
+            Response returned by the current user permissions endpoint.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CurrentUserPermissionsResponse.Permissions">
+            <summary>
+            Active permission keys assigned to the current user's role.
+            </summary>
+            <example>["dashboard.view", "users.view", "roles.view"]</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.Verify2FaLoginRequest">
+            <summary>
+            Request payload to verify 2FA OTP code and complete login.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.Verify2FaLoginRequest.Email">
+            <summary>
+            User email address.
+            </summary>
+            <example>admin@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.Verify2FaLoginRequest.Otp">
+            <summary>
+            6-digit 2FA OTP code dispatched via email.
+            </summary>
+            <example>682491</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.Resend2FaOtpRequest">
+            <summary>
+            Request payload to re-send 2FA OTP during login.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.Resend2FaOtpRequest.Email">
+            <summary>
+            User email address.
+            </summary>
+            <example>admin@example.com</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.LoginResponse">
+            <summary>
+            Login result payload supporting both direct JWT issuance and 2FA challenge.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LoginResponse.Success">
+            <summary>
+            Whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LoginResponse.Message">
+            <summary>
+            Status or instructional message.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LoginResponse.RequiresTwoFactor">
+            <summary>
+            Indicates whether Two-Factor Authentication is active and requires OTP input.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LoginResponse.Data">
+            <summary>
+            Authenticated user session data (present when 2FA is not required or after successful OTP validation).
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.EvaluatePasswordRequest">
+            <summary>
+            Request payload to evaluate password complexity and strength.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordRequest.Password">
+            <summary>
+            Password string to evaluate.
+            </summary>
+            <example>Admin@12345</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.PasswordEvaluationCriteriaDto">
+            <summary>
+            Status of individual password policy criteria.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PasswordEvaluationCriteriaDto.MinLength">
+            <summary>
+            Whether the password has at least 8 characters.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PasswordEvaluationCriteriaDto.HasUpper">
+            <summary>
+            Whether the password contains at least one uppercase letter.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PasswordEvaluationCriteriaDto.HasLower">
+            <summary>
+            Whether the password contains at least one lowercase letter.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PasswordEvaluationCriteriaDto.HasNumber">
+            <summary>
+            Whether the password contains at least one numeric digit.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PasswordEvaluationCriteriaDto.HasSpecial">
+            <summary>
+            Whether the password contains at least one special character.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.EvaluatePasswordResponse">
+            <summary>
+            Detailed result of backend password evaluation.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.IsValid">
+            <summary>
+            Whether the password satisfies all strong security requirements.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.IsStrong">
+            <summary>
+            Alias for IsValid indicating if the password meets strong criteria.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.Score">
+            <summary>
+            Password strength score from 0 to 100.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.StrengthLabel">
+            <summary>
+            Descriptive strength label ("Empty", "Very Weak", "Weak", "Fair", "Good", "Strong").
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.Criteria">
+            <summary>
+            Breakdown of individual security criteria statuses.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.Errors">
+            <summary>
+            List of unmet policy error/requirement messages.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.EvaluatePasswordResponse.Message">
+            <summary>
+            Summary feedback message.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.LogoutRequest">
+            <summary>
+            Payload to record user logout session.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LogoutRequest.UserId">
+            <summary>
+            Optional user ID.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.LogoutRequest.Email">
+            <summary>
+            Optional user email address.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.ApiResponse`1">
+            <summary>
+            Standard API response wrapper containing a success flag, message, and optional payload.
+            </summary>
+            <typeparam name="T">The type of payload data.</typeparam>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ApiResponse`1.Success">
+            <summary>
+            Indicates whether the operation succeeded.
+            </summary>
+            <example>true</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ApiResponse`1.Message">
+            <summary>
+            Informational message describing the result of the request.
+            </summary>
+            <example>Operation completed successfully.</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ApiResponse`1.Data">
+            <summary>
+            The response payload data.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.MessageResponse">
+            <summary>
+            Generic message response for operations that do not return a data entity.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.MessageResponse.Success">
+            <summary>
+            Indicates whether the operation succeeded.
+            </summary>
+            <example>true</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.MessageResponse.Message">
+            <summary>
+            Informational message or status description.
+            </summary>
+            <example>Request processed successfully.</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.ErrorResponse">
+            <summary>
+            Error response details returned on client or server errors (400, 401, 403, 404, 500).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ErrorResponse.Success">
+            <summary>
+            Indicates failure of the request.
+            </summary>
+            <example>false</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ErrorResponse.Message">
+            <summary>
+            Error message explaining why the request failed.
+            </summary>
+            <example>Invalid request parameters or unauthorized access.</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.ErrorResponse.Errors">
+            <summary>
+            Optional list of validation or field-level errors.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DeleteResponse">
+            <summary>
+            Response returned upon successful soft deletion or restoration of a resource.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DeleteResponse.Success">
+            <summary>
+            Indicates whether the deletion or status update succeeded.
+            </summary>
+            <example>true</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DeleteResponse.Message">
+            <summary>
+            Status description message.
+            </summary>
+            <example>Resource deleted successfully!</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DeleteResponse.Id">
+            <summary>
+            The ID of the affected resource.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DeleteResponse.DeletedFlag">
+            <summary>
+            The updated deleted flag state (0 = deleted/inactive, 1 = active).
+            </summary>
+            <example>0</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DashboardSummaryResponse">
+            <summary>
+            Comprehensive aggregation response model for the administrative dashboard.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardSummaryResponse.Kpis">
+            <summary>
+            Key performance indicator summary metrics.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardSummaryResponse.RoleDistribution">
+            <summary>
+            Breakdown of user distribution across active roles.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardSummaryResponse.RecentUsers">
+            <summary>
+            Top recent registered users in the workspace.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardSummaryResponse.RecentActivities">
+            <summary>
+            Chronological audit and system activity items.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardSummaryResponse.ChartData">
+            <summary>
+            Time-series data points for the user activity and growth area chart.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardSummaryResponse.DateRangeDescription">
+            <summary>
+            Formatted human-readable date range description for the selected timeframe.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DashboardKpiMetrics">
+            <summary>
+            High-level KPI metric counts and trend statistics.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.TotalUsers">
+            <summary>
+            Total number of registered users (active + inactive).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.ActiveUsers">
+            <summary>
+            Count of active users (DeletedFlag = 1).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.InactiveUsers">
+            <summary>
+            Count of deactivated / soft-deleted users (DeletedFlag = 0).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.TotalRoles">
+            <summary>
+            Total number of configured active authorization roles.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.TotalPermissions">
+            <summary>
+            Total count of granular permission capabilities in the system.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.ActiveSessions">
+            <summary>
+            Estimated or active online user sessions.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.UsersGrowth">
+            <summary>
+            Percentage change indicator for total users (e.g. "+12.5%").
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.RolesGrowth">
+            <summary>
+            Percentage change indicator for roles.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.PermissionsGrowth">
+            <summary>
+            Percentage change indicator for permissions.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DashboardKpiMetrics.SessionsGrowth">
+            <summary>
+            Percentage change indicator for active sessions.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DashboardRoleItem">
+            <summary>
+            Role distribution item for donut chart visualization.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DashboardRecentUserItem">
+            <summary>
+            User profile snippet displayed in the recent users table.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DashboardActivityItem">
+            <summary>
+            System and administrative event item for the activity stream.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DashboardChartPoint">
+            <summary>
+            Daily or interval aggregated points for trend area charts.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.DesignationDto">
+            <summary>
+            Representation of a workspace designation returned in API responses.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DesignationDto.Id">
+            <summary>
+            Unique designation ID.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DesignationDto.Name">
+            <summary>
+            Name / Title of the designation.
+            </summary>
+            <example>Software Engineer</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DesignationDto.Description">
+            <summary>
+            Brief description of the designation.
+            </summary>
+            <example>Develops and maintains core applications and services.</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.DesignationDto.DeletedFlag">
+            <summary>
+            Status flag (1 = Active, 0 = Deactivated).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.CreateDesignationRequest">
+            <summary>
+            Payload to create a new designation in the system.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateDesignationRequest.Name">
+            <summary>
+            Name of the designation.
+            </summary>
+            <example>Software Engineer</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateDesignationRequest.Description">
+            <summary>
+            Description of the designation.
+            </summary>
+            <example>Develops and maintains core applications and services.</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UpdatePermissionsRequest">
+            <summary>
+            Payload to update the list of permission keys assigned to a specific role.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdatePermissionsRequest.PermissionKeys">
+            <summary>
+            Array of permission keys to assign to the role.
+            </summary>
+            <example>["dashboard.view", "users.view", "users.create", "roles.view"]</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.PermissionDto">
+            <summary>
+            Individual system permission details.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PermissionDto.PermissionKey">
+            <summary>
+            Unique permission key identifier (e.g. users.create, roles.view).
+            </summary>
+            <example>users.create</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PermissionDto.Name">
+            <summary>
+            Human-friendly permission name.
+            </summary>
+            <example>Create Users</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PermissionDto.Description">
+            <summary>
+            Description of capabilities granted by this permission.
+            </summary>
+            <example>Allows provisioning new member accounts and assigning roles.</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PermissionDto.IsAssigned">
+            <summary>
+            Indicates whether this permission is assigned (1 = assigned, 0 = unassigned).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.RolePermissionDto">
+            <summary>
+            Role with its comma-delimited assigned permission keys from the database.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RolePermissionDto.RoleId">
+            <summary>
+            Role identifier.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RolePermissionDto.RoleName">
+            <summary>
+            Name of the role.
+            </summary>
+            <example>Admin</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RolePermissionDto.PermissionKeys">
+            <summary>
+            Comma-separated list of assigned permission keys.
+            </summary>
+            <example>users.view,users.create,roles.view</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.RolePermissionMatrixItem">
+            <summary>
+            Formatted role permission matrix item returned to client applications.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RolePermissionMatrixItem.RoleId">
+            <summary>
+            Unique role identifier.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RolePermissionMatrixItem.RoleName">
+            <summary>
+            Display name of the role.
+            </summary>
+            <example>Admin</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RolePermissionMatrixItem.PermissionKeys">
+            <summary>
+            Array of permission keys currently assigned to this role.
+            </summary>
+            <example>["users.view", "users.create", "roles.view"]</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.PermissionsMatrixResponse">
+            <summary>
+            Full permissions matrix response containing all system permissions and assignments across roles.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PermissionsMatrixResponse.Permissions">
+            <summary>
+            All available permissions registered in the system.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.PermissionsMatrixResponse.Roles">
+            <summary>
+            Matrix of all roles and their assigned permission keys.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.CreateRoleRequest">
+            <summary>
+            Payload to create a new workspace role.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateRoleRequest.Name">
+            <summary>
+            Unique name of the role (e.g. Editor, Compliance Manager).
+            </summary>
+            <example>Auditor</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateRoleRequest.Description">
+            <summary>
+            Description detailing the purpose and access level of the role.
+            </summary>
+            <example>Grants read-only access to audit trails and activity logs.</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UpdateRoleRequest">
+            <summary>
+            Payload to update an existing role's title and description.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateRoleRequest.Name">
+            <summary>
+            Updated name of the role.
+            </summary>
+            <example>Senior Auditor</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateRoleRequest.Description">
+            <summary>
+            Updated description of the role.
+            </summary>
+            <example>Grants comprehensive access to workspace audit trails and compliance reports.</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.RoleDto">
+            <summary>
+            Role representation data returned in API responses.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RoleDto.Id">
+            <summary>
+            Unique role identifier.
+            </summary>
+            <example>3</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RoleDto.Name">
+            <summary>
+            Role name.
+            </summary>
+            <example>Auditor</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RoleDto.Description">
+            <summary>
+            Role description.
+            </summary>
+            <example>Grants read-only access to audit logs.</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.RoleDto.DeletedFlag">
+            <summary>
+            Status flag (1 = Active, 0 = Inactive/Deleted).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UserSessionItemDto">
+            <summary>
+            Item representing an individual user login/logout activity record with calculated metadata.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UserActivitySummaryDto">
+            <summary>
+            Summary response containing KPI metric cards and active users for the User Activity page.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UserActivityQueryParameters">
+            <summary>
+            Query parameters for filtering and paginating user activity sessions.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.PagedUserActivityResponse">
+            <summary>
+            Paginated response containing list of session items and metadata.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.CreateUserRequest">
+            <summary>
+            Payload required to create a new user account.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.Name">
+            <summary>
+            Full name of the user.
+            </summary>
+            <example>Jane Doe</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.Email">
+            <summary>
+            Valid email address for the user account. Must be unique.
+            </summary>
+            <example>jane.doe@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.Password">
+            <summary>
+            Initial plain-text password for the user. Will be securely hashed upon creation.
+            </summary>
+            <example>SecurePass@123</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.RoleId">
+            <summary>
+            Role identifier to assign to the user (e.g. 1 for Member, 2 for Super Admin).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.DesignationId">
+            <summary>
+            Designation identifier to assign to the user.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.Phone">
+            <summary>
+            Contact telephone number.
+            </summary>
+            <example>+1 (555) 234-5678</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.Age">
+            <summary>
+            Age in years.
+            </summary>
+            <example>28</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.CreateUserRequest.Address">
+            <summary>
+            Residential or physical street address.
+            </summary>
+            <example>742 Evergreen Terrace, Springfield</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UpdateUserRequest">
+            <summary>
+            Payload to update an existing user's profile and credentials.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.Name">
+            <summary>
+            Updated full name of the user.
+            </summary>
+            <example>Jane Doe</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.Email">
+            <summary>
+            Updated email address.
+            </summary>
+            <example>jane.doe@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.Password">
+            <summary>
+            Optional updated password. If empty or omitted, existing password remains unchanged.
+            </summary>
+            <example>NewSecurePass@123</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.RoleId">
+            <summary>
+            Updated Role identifier assignment.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.DesignationId">
+            <summary>
+            Updated Designation identifier assignment.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.Phone">
+            <summary>
+            Updated contact telephone number.
+            </summary>
+            <example>+1 (555) 234-5678</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.Age">
+            <summary>
+            Updated age in years.
+            </summary>
+            <example>29</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UpdateUserRequest.Address">
+            <summary>
+            Updated street address.
+            </summary>
+            <example>742 Evergreen Terrace, Springfield</example>
+        </member>
+        <member name="T:MyBackend.Application.Contracts.UserDto">
+            <summary>
+            User representation returned in API responses.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.Id">
+            <summary>
+            Unique user ID.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.Name">
+            <summary>
+            Full display name.
+            </summary>
+            <example>Jane Doe</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.Email">
+            <summary>
+            Account email address.
+            </summary>
+            <example>jane.doe@example.com</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.RoleId">
+            <summary>
+            Associated role ID.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.RoleName">
+            <summary>
+            Associated role name.
+            </summary>
+            <example>Admin</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.DesignationId">
+            <summary>
+            Associated designation ID.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.DesignationName">
+            <summary>
+            Associated designation name.
+            </summary>
+            <example>Software Engineer</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.Phone">
+            <summary>
+            Contact telephone number.
+            </summary>
+            <example>+1 (555) 234-5678</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.Age">
+            <summary>
+            User age.
+            </summary>
+            <example>28</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.Address">
+            <summary>
+            Residential or physical street address.
+            </summary>
+            <example>742 Evergreen Terrace, Springfield</example>
+        </member>
+        <member name="P:MyBackend.Application.Contracts.UserDto.DeletedFlag">
+            <summary>
+            Status flag (1 = Active, 0 = Deactivated/Soft-deleted).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IAuthService">
+            <summary>
+            Service contract for user authentication, 2FA verification, OTP recovery, session logging, and password strength evaluation.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.LoginAsync(MyBackend.Application.Contracts.LoginRequest,System.String,System.String)">
+            <summary>
+            Authenticates user credentials, tracks login session with IP address and timestamp, and returns JWT token or initiates 2FA challenge.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.Verify2FaLoginAsync(MyBackend.Application.Contracts.Verify2FaLoginRequest,System.String,System.String)">
+            <summary>
+            Verifies 2FA OTP code, records active session with IP address, and completes the sign-in session.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.LogoutAsync(System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Records user logout timestamp, deactivates active session, and logs audit trail.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.Resend2FaOtpAsync(MyBackend.Application.Contracts.Resend2FaOtpRequest)">
+            <summary>
+            Re-sends a 2FA OTP security code to the registered email.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.ForgotPasswordAsync(MyBackend.Application.Contracts.ForgotPasswordRequest)">
+            <summary>
+            Initiates password recovery by dispatching a verification OTP.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.VerifyOtp(MyBackend.Application.Contracts.VerifyOtpRequest)">
+            <summary>
+            Validates OTP code before password reset.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.ResetPasswordAsync(MyBackend.Application.Contracts.ResetPasswordRequest)">
+            <summary>
+            Completes password reset using verified OTP with strong password enforcement.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.EvaluatePassword(MyBackend.Application.Contracts.EvaluatePasswordRequest)">
+            <summary>
+            Evaluates password complexity and strength against security policies in real-time.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.GetUserPermissionsAsync(System.Int32)">
+            <summary>
+            Resolves granted RBAC permissions for the authenticated user.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.GetUserSessionsAsync(System.Int32,System.Int32)">
+            <summary>
+            Retrieves the session login/logout history for a specific user.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IAuthService.GetAllRecentSessionsAsync(System.Int32)">
+            <summary>
+            Retrieves all recent user login and logout sessions with IP addresses.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IDashboardService">
+            <summary>
+            Service contract for aggregate workspace dashboard metrics, charts, and activity audit items.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IDashboardService.GetDashboardSummaryAsync(System.String)">
+            <summary>
+            Retrieves aggregated KPI metrics, role distribution charts, and recent activity items.
+            </summary>
+            <param name="timeframe">Optional timeframe filter (e.g. 7d, 30d, 90d, 12m).</param>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IDesignationService">
+            <summary>
+            Service contract for managing workspace designations.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IDesignationService.GetAllDesignationsAsync">
+            <summary>
+            Retrieves all active designations formatted as DesignationDto.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IDesignationService.GetDesignationByIdAsync(System.Int32)">
+            <summary>
+            Retrieves a designation by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IDesignationService.CreateDesignationAsync(MyBackend.Application.Contracts.CreateDesignationRequest)">
+            <summary>
+            Creates and saves a new designation in the system.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IPermissionService">
+            <summary>
+            Service contract for permissions matrix retrieval and role capability assignments.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IPermissionService.GetPermissionsMatrixAsync">
+            <summary>
+            Retrieves the comprehensive matrix of permissions mapped across all workspace roles.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IPermissionService.GetAllPermissionsAsync">
+            <summary>
+            Retrieves all registered system permissions formatted as PermissionDto.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IPermissionService.GetRolePermissionsAsync(System.Int32)">
+            <summary>
+            Retrieves all permission keys assigned to a specific role.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IPermissionService.UpdateRolePermissionsAsync(System.Int32,MyBackend.Application.Contracts.UpdatePermissionsRequest)">
+            <summary>
+            Updates the set of permission keys assigned to a specific role.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IRoleService">
+            <summary>
+            Service contract for role provisioning, retrieval, updates, and soft deletion.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IRoleService.GetAllRolesAsync">
+            <summary>
+            Retrieves all workspace roles formatted as RoleDto.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IRoleService.GetRoleByIdAsync(System.Int32)">
+            <summary>
+            Retrieves a single role by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IRoleService.CreateRoleAsync(MyBackend.Application.Contracts.CreateRoleRequest)">
+            <summary>
+            Creates and persists a new workspace role.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IRoleService.UpdateRoleAsync(System.Int32,MyBackend.Application.Contracts.UpdateRoleRequest)">
+            <summary>
+            Updates an existing role's name and description.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IRoleService.SoftDeleteRoleAsync(System.Int32)">
+            <summary>
+            Soft-deletes a role.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IRoleService.RestoreRoleAsync(System.Int32)">
+            <summary>
+            Restores a soft-deleted role.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IUserActivityService">
+            <summary>
+            Contract for managing user login/logout activity monitoring and active online sessions.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserActivityService.GetSummaryAsync">
+            <summary>
+            Retrieves high-level dashboard metrics and active sessions.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserActivityService.GetPagedActivitiesAsync(MyBackend.Application.Contracts.UserActivityQueryParameters)">
+            <summary>
+            Retrieves paginated login/logout activity records with filters.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserActivityService.GetActiveUsersAsync">
+            <summary>
+            Retrieves currently active/logged-in users.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserActivityService.GetSessionByIdAsync(System.Int32)">
+            <summary>
+            Retrieves an active session by session ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserActivityService.TerminateSessionAsync(System.Int32,System.Int32)">
+            <summary>
+            Terminates a specific session by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserActivityService.ForceLogoutUserAsync(System.Int32,System.Int32)">
+            <summary>
+            Force-logs out a user across all active sessions.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Interfaces.IUserService">
+            <summary>
+            Service contract for user lifecycle management, role assignments, and permission authorization.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.GetAllUsersAsync">
+            <summary>
+            Retrieves all user accounts formatted as UserDto.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.GetUserByIdAsync(System.Int32)">
+            <summary>
+            Retrieves detailed information for a single user by their identifier.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.CreateUserAsync(MyBackend.Application.Contracts.CreateUserRequest)">
+            <summary>
+            Provisions a new user account with hashed password and sends welcome credentials email.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.UpdateUserAsync(System.Int32,MyBackend.Application.Contracts.UpdateUserRequest)">
+            <summary>
+            Updates an existing user's profile and credentials.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.SoftDeleteUserAsync(System.Int32)">
+            <summary>
+            Soft-deletes / deactivates a user account.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.RestoreUserAsync(System.Int32)">
+            <summary>
+            Restores a soft-deleted user account.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Application.Interfaces.IUserService.HasPermissionAsync(System.Int32,System.String[])">
+            <summary>
+            Checks whether the specified user has any of the required permission keys.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.AuthService">
+            <summary>
+            Implements user authentication, 2FA validation, OTP recovery, login/logout session recording with IP tracking, and real-time password evaluation using repositories.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.DashboardService">
+            <summary>
+            Implements aggregate workspace metrics calculation, chart generation, and activity reporting using repositories.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.DesignationService">
+            <summary>
+            Implements Designation catalog management and querying.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.OtpService">
+            <summary>
+            In-memory thread-safe OTP manager with rate limiting and automatic expiration.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.PermissionService">
+            <summary>
+            Implements RBAC permission catalog retrieval and role-permission matrix assignments using repositories.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.RoleService">
+            <summary>
+            Implements role creation, updates, querying, and soft deletion using repositories.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Application.Services.UserService">
+            <summary>
+            Implements user account provisioning, profile retrieval, updates, soft deletion, and permission verification using repositories.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Configuration.Config">
+            <summary>
+            Centralized application configuration containing PostgreSQL database connection string,
+            Gmail SMTP credentials, and JWT authorization secrets.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.DbConnectionString">
+            <summary>
+            PostgreSQL database connection string.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.SmtpServer">
+            <summary>
+            SMTP host server address (e.g. smtp.gmail.com).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.SmtpPort">
+            <summary>
+            SMTP port number (587 for TLS / STARTTLS).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.SenderName">
+            <summary>
+            Display sender name in recipient emails.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.SenderEmail">
+            <summary>
+            Sender's registered Gmail address.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.GmailPassword">
+            <summary>
+            16-character Google App Password for Gmail SMTP authentication.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.EnableSsl">
+            <summary>
+            Whether SSL/TLS is enabled for SMTP communication.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.JwtKey">
+            <summary>
+            Secret key for HMAC SHA-256 JWT signing.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.JwtIssuer">
+            <summary>
+            JWT Token Issuer identifier.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.JwtAudience">
+            <summary>
+            JWT Token Audience identifier.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Configuration.Config.JwtExpiresMinutes">
+            <summary>
+            JWT Token expiration window in minutes.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Configuration.Config.Load(Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Synchronizes and overlays configuration values from IConfiguration / appsettings.json if available.
+            </summary>
+            <param name="configuration">The application configuration root.</param>
+        </member>
+        <member name="M:MyBackend.Configuration.Config.ToEmailSettings">
+            <summary>
+            Returns an EmailSettings instance populated with the current Gmail configuration values.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Configuration.AppConfig">
+            <summary>
+            Alias for Config class.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Common.BaseEntity">
+            <summary>
+            Base entity class containing common identifier and soft-delete state.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Common.BaseEntity.DeletedFlag">
+            <summary>
+            Soft deletion flag (1 = Active, 0 = Inactive/Deleted).
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.AuditLog">
+            <summary>
+            Audit log entity recording security, administrative, and data change events.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.Designation">
+            <summary>
+            Represents an organizational job title / designation entity.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Designation.Id">
+            <summary>
+            Unique designation identifier.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Designation.Name">
+            <summary>
+            Name / Title of the designation.
+            </summary>
+            <example>Software Engineer</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Designation.Description">
+            <summary>
+            Short description of responsibilities for this designation.
+            </summary>
+            <example>Develops and maintains core applications and services.</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Designation.DeletedFlag">
+            <summary>
+            Active status flag (1 = Active, 0 = Deactivated).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Designation.CreatedAt">
+            <summary>
+            Timestamp when the designation record was created.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.EventType">
+            <summary>
+            Represents a calendar event type / schedule category stored in PostgreSQL.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.Menu">
+            <summary>
+            Represents a dynamic navigation menu item in the application.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.Id">
+            <summary>
+            Unique menu identifier.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.MenuKey">
+            <summary>
+            Unique menu key string identifier.
+            </summary>
+            <example>dashboard.view</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.Label">
+            <summary>
+            Navigation menu display label.
+            </summary>
+            <example>Dashboard</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.Icon">
+            <summary>
+            Icon symbol or icon identifier.
+            </summary>
+            <example>◫</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.Route">
+            <summary>
+            Client-side application route path.
+            </summary>
+            <example>/dashboard</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.GroupName">
+            <summary>
+            Navigation grouping section name.
+            </summary>
+            <example>Core Access</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.Description">
+            <summary>
+            Description of the menu section and functionality.
+            </summary>
+            <example>System metrics &amp; access summary</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.OrderIndex">
+            <summary>
+            Sorting and display order index.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.PermissionKey">
+            <summary>
+            Required permission key to view/access this menu (null if public to all authenticated users).
+            </summary>
+            <example>dashboard.view</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Menu.DeletedFlag">
+            <summary>
+            Status flag (1 = Active, 0 = Deleted).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.Permission">
+            <summary>
+            System permission entity defining a specific platform capability.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.Project">
+            <summary>
+            Workspace RBAC rollout, DevOps, and Governance initiative project entity.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.Report">
+            <summary>
+            Compliance, access, and security reports entity.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.Role">
+            <summary>
+            Represents an authorization role assigned to users in the RBAC system.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Role.Id">
+            <summary>
+            Unique role identifier.
+            </summary>
+            <example>2</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Role.Name">
+            <summary>
+            Name of the role.
+            </summary>
+            <example>Super Admin</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Role.Description">
+            <summary>
+            Detailed description of the role responsibilities and privileges.
+            </summary>
+            <example>Full system access and authority to manage all workspaces and permissions.</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.Role.DeletedFlag">
+            <summary>
+            Status flag (1 = Active, 0 = Deleted).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.RolePermission">
+            <summary>
+            Join entity mapping assigned permissions to roles.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.ScheduleEvent">
+            <summary>
+            Calendar scheduled audits, access reviews, training, and meetings entity.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.SettingCategory">
+            <summary>
+            Represents a configuration category under Settings stored in PostgreSQL.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.SystemSetting">
+            <summary>
+            System and workspace configuration setting key-value entity.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.User">
+            <summary>
+            User account database entity representing a registered system member.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Id">
+            <summary>
+            Unique user identifier.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Name">
+            <summary>
+            Full name of the user.
+            </summary>
+            <example>Alex Morgan</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Email">
+            <summary>
+            Email address used for authentication.
+            </summary>
+            <example>alex.morgan@example.com</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.PasswordHash">
+            <summary>
+            Stored cryptographic hash of the user password.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Password">
+            <summary>
+            Plain-text password transient property (used during creation/update).
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.RoleId">
+            <summary>
+            Identifier of the assigned role.
+            </summary>
+            <example>2</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.DesignationId">
+            <summary>
+            Identifier of the assigned designation.
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Phone">
+            <summary>
+            Contact telephone number.
+            </summary>
+            <example>+1 (555) 019-2834</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Age">
+            <summary>
+            User age.
+            </summary>
+            <example>32</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.Address">
+            <summary>
+            Physical address.
+            </summary>
+            <example>123 Innovation Way, Suite 400</example>
+        </member>
+        <member name="P:MyBackend.Domain.Entities.User.DeletedFlag">
+            <summary>
+            Status flag (1 = Active, 0 = Deactivated/Deleted).
+            </summary>
+            <example>1</example>
+        </member>
+        <member name="T:MyBackend.Domain.Entities.UserSession">
+            <summary>
+            Database entity representing user login and logout audit sessions with timestamps and IP addresses.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IDesignationRepository">
+            <summary>
+            Specialized repository contract for Designation entity queries and operations.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IDesignationRepository.GetActiveDesignationsAsync">
+            <summary>
+            Retrieves all active workspace designations (DeletedFlag = 1).
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IDesignationRepository.GetActiveDesignationByIdAsync(System.Int32)">
+            <summary>
+            Retrieves an active designation by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IDesignationRepository.GetDesignationNameDictionaryAsync">
+            <summary>
+            Retrieves a lookup dictionary of Designation ID to Designation Name for active designations.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IPermissionRepository">
+            <summary>
+            Specialized repository contract for Permissions catalog and RolePermission assignments.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IPermissionRepository.GetPermissionsMatrixAsync">
+            <summary>
+            Retrieves the comprehensive matrix of permissions mapped across all workspace roles.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IPermissionRepository.GetAllActivePermissionsAsync">
+            <summary>
+            Retrieves all active permissions formatted as PermissionDto.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IPermissionRepository.GetPermissionKeysByRoleIdAsync(System.Int32)">
+            <summary>
+            Retrieves permission keys assigned to a specific role ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IPermissionRepository.UpdateRolePermissionsAsync(System.Int32,System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Updates the full set of permission keys assigned to a role ID.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IRepository`1">
+            <summary>
+            Generic repository contract providing standard CRUD and query operations for domain entities.
+            </summary>
+            <typeparam name="T">The domain entity type.</typeparam>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.GetByIdAsync(System.Int32)">
+            <summary>
+            Retrieves an entity by its integer identifier.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.ListAllAsync">
+            <summary>
+            Retrieves all entities of type T.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.FindAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Retrieves entities matching a filter expression.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.FirstOrDefaultAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Retrieves the first entity matching a filter expression or default.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.AnyAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Checks whether any entity matches a filter condition.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.CountAsync(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Returns total count of entities matching a filter condition.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.AddAsync(`0)">
+            <summary>
+            Adds a new entity to the repository.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.AddRangeAsync(System.Collections.Generic.IEnumerable{`0})">
+            <summary>
+            Adds multiple entities to the repository.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.Update(`0)">
+            <summary>
+            Marks an entity as modified.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.Delete(`0)">
+            <summary>
+            Removes an entity from the repository.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRepository`1.DeleteRange(System.Collections.Generic.IEnumerable{`0})">
+            <summary>
+            Removes multiple entities from the repository.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IRoleRepository">
+            <summary>
+            Specialized repository contract for Role entity queries and operations.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRoleRepository.GetActiveRolesAsync">
+            <summary>
+            Retrieves all active workspace roles (DeletedFlag = 1).
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRoleRepository.GetActiveRoleByIdAsync(System.Int32)">
+            <summary>
+            Retrieves an active role by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRoleRepository.SetDeletedFlagAsync(System.Int32,System.Int32)">
+            <summary>
+            Updates the soft-delete flag of a role.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IRoleRepository.GetRoleNameDictionaryAsync">
+            <summary>
+            Retrieves a lookup dictionary of Role ID to Role Name for active roles.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IUnitOfWork">
+            <summary>
+            Coordinates operations across repositories and manages atomic transactions.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.Users">
+            <summary>
+            User repository instance.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.Roles">
+            <summary>
+            Role repository instance.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.Designations">
+            <summary>
+            Designation repository instance.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.Permissions">
+            <summary>
+            Permission repository instance.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.SystemSettings">
+            <summary>
+            System settings repository instance.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.Menus">
+            <summary>
+            Navigation menus repository instance.
+            </summary>
+        </member>
+        <member name="P:MyBackend.Domain.Interfaces.IUnitOfWork.Sessions">
+            <summary>
+            User login and logout sessions repository instance.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUnitOfWork.Repository``1">
+            <summary>
+            Dynamic repository accessor for any entity type T.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUnitOfWork.SaveChangesAsync(System.Threading.CancellationToken)">
+            <summary>
+            Commits all pending changes to the underlying database.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUnitOfWork.BeginTransactionAsync">
+            <summary>
+            Begins a new atomic database transaction.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUnitOfWork.CommitTransactionAsync">
+            <summary>
+            Commits the active transaction.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUnitOfWork.RollbackTransactionAsync">
+            <summary>
+            Rolls back the active transaction.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IUserRepository">
+            <summary>
+            Specialized repository contract for User entity operations and authorization queries.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.GetByEmailAsync(System.String)">
+            <summary>
+            Retrieves a user by normalized email address.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.GetAllUsersAsync">
+            <summary>
+            Retrieves all users ordered by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.GetUserByIdAsync(System.Int32)">
+            <summary>
+            Retrieves a single user by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.SetDeletedFlagAsync(System.Int32,System.Int32)">
+            <summary>
+            Updates the soft-delete flag of a user (1 = Active, 0 = Inactive).
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.HasPermissionAsync(System.Int32,System.String[])">
+            <summary>
+            Checks whether a user has any of the specified permission keys.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.GetUserPermissionKeysAsync(System.Int32)">
+            <summary>
+            Retrieves the list of permission keys assigned to the user.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserRepository.UpdatePasswordHashAsync(System.Int32,System.String)">
+            <summary>
+            Directly updates the stored password hash of a user.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Domain.Interfaces.IUserSessionRepository">
+            <summary>
+            Specialized repository contract for tracking user login and logout audit sessions with timestamps and IP addresses.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.RecordLoginAsync(System.Int32,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Records a new user login session with client IP address, user agent, and timestamp.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.RecordLogoutAsync(System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Records user logout timestamp, deactivates active sessions, and saves logout timestamp in database.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.GetUserSessionsAsync(System.Int32,System.Int32)">
+            <summary>
+            Retrieves the session history for a specific user ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.GetAllRecentSessionsAsync(System.Int32)">
+            <summary>
+            Retrieves the most recent active and logged-out user sessions across the workspace.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.GetActiveSessionsAsync">
+            <summary>
+            Retrieves all currently active (logged-in) sessions where IsActive is true and LogoutTime is null.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.GetPagedSessionsAsync(System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Retrieves paginated sessions with optional text search and status filter.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.TerminateSessionAsync(System.Int32)">
+            <summary>
+            Terminates a specific active session by ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.TerminateAllUserSessionsAsync(System.Int32)">
+            <summary>
+            Terminates all active sessions for a specific user ID.
+            </summary>
+        </member>
+        <member name="M:MyBackend.Domain.Interfaces.IUserSessionRepository.GetActivityStatsAsync">
+            <summary>
+            Retrieves quick aggregated statistics for user activities.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.DesignationRepository">
+            <summary>
+            Implements specialized Designation queries and lookup dictionaries.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.PermissionRepository">
+            <summary>
+            Implements RBAC permission catalog queries and atomic role-permission updates.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.Repository`1">
+            <summary>
+            Generic EF Core repository implementation for domain entities.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.RoleRepository">
+            <summary>
+            Implements specialized Role entity operations and queries.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.UnitOfWork">
+            <summary>
+            Implements the Unit of Work pattern, coordinating repositories and database transaction lifecycles.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.UserRepository">
+            <summary>
+            Implements specialized User entity queries, raw SQL queries, and RBAC permission checks.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Repositories.UserSessionRepository">
+            <summary>
+            Implements user login and logout audit sessions storage and retrieval with timestamps and IP addresses.
+            </summary>
+        </member>
+        <member name="T:MyBackend.Infrastructure.Services.GmailEmailService">
+            <summary>
+            Implementation of IEmailService using Gmail SMTP.
+            </summary>
+        </member>
+        <member name="T:Program">
+            <summary>
+            Auto-generated public partial Program class for top-level statement apps.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type)">
+            <summary>
+            Generates a documentation comment ID for a type.
+            Example: T:Namespace.Outer+Inner`1 becomes T:Namespace.Outer.Inner`1
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Reflection.PropertyInfo)">
+            <summary>
+            Generates a documentation comment ID for a property.
+            Example: P:Namespace.ContainingType.PropertyName or for an indexer P:Namespace.ContainingType.Item(System.Int32)
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Type,System.String)">
+            <summary>
+            Generates a documentation comment ID for a property given its container type and property name.
+            Example: P:Namespace.ContainingType.PropertyName
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.CreateDocumentationId(System.Reflection.MethodInfo)">
+            <summary>
+            Generates a documentation comment ID for a method (or constructor).
+            For example:
+              M:Namespace.ContainingType.MethodName(ParamType1,ParamType2)~ReturnType
+              M:Namespace.ContainingType.#ctor(ParamType)
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.GetTypeDocId(System.Type,System.Boolean,System.Boolean)">
+            <summary>
+            Generates a documentation ID string for a type.
+            This method handles nested types (replacing '+' with '.'),
+            generic types, arrays, pointers, by-ref types, and generic parameters.
+            The <paramref name="includeGenericArguments"/> flag controls whether
+            constructed generic type arguments are emitted, while <paramref name="omitGenericArity"/>
+            controls whether the generic arity marker (e.g. "`1") is appended.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.OpenApi.Generated.DocumentationCommentIdHelper.NormalizeDocId(System.String)">
+            <summary>
+            Normalizes a documentation comment ID to match the compiler-style format.
+            Strips the return type suffix for ordinary methods but retains it for conversion operators.
+            </summary>
+            <param name="docId">The documentation comment ID to normalize.</param>
+            <returns>The normalized documentation comment ID.</returns>
+        </member>
+    </members>
+</doc>
