@@ -15,9 +15,8 @@ namespace MyBackend.Configuration
         /// <summary>
         /// PostgreSQL database connection string.
         /// </summary>
-        public static string DbConnectionString { get; set; } =
-            "Host=ep-fancy-fog-ayv3j9wc.c-5.us-east-2.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_wsEQdcmO49nX;SSL Mode=Require;Trust Server Certificate=true;";
-
+         public static string DbConnectionString { get; set; } =
+    "Host=ep-fancy-fog-ayv3j9wc-pooler.c-5.us-east-2.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=npg_wsEQdcmO49nX;SSL Mode=Require;Channel Binding=Require;";
         // =========================================================================
         // 2. Gmail / SMTP Configuration & Password
         // =========================================================================
